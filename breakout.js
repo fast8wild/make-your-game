@@ -4,6 +4,12 @@ let leftPressed = false
 let rightPressed = false
 let startState = true // Start of the game, press enter to launch the ball
 let endState = false // Game over state
+let startTime = new Date();
+let ui = {
+  time: "00:00",
+  lives: 3,
+  score: 0,
+}
 let lives = 3
 
 let paddle = {
@@ -22,6 +28,16 @@ let ball = {
   dy: -2
 }
 
+let brickArray = {
+  rowCount: 3,
+  colCount: 5,
+  w: 75,
+  h: 20,
+  padding: 10,
+  offsetTop: 30,
+  offsetLeft: 30,
+}
+
 let tolerance = 10 // margin of error of hitting paddle
 
 function drawBall() {
@@ -38,33 +54,59 @@ function drawPaddle() {
   ctx.fill();
 }
 
+function drawGameOver() {
+  let text = "GAME OVER"
+  ctx.font = "50px Arial";
+  ctx.fillStyle = "Red"
+  ctx.textAlign = "Center"
+  ctx.textBaseLine = "Middle"
+  ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
+  text = "Press Enter to retry"
+  ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2+50)
+}
+
+function drawStartMessage() {
+  let text = "Press Enter"
+  ctx.font = "30px Arial";
+  ctx.fillStyle = "Blue"
+  ctx.textAlign = "Center"
+  ctx.textBaseLine = "Middle"
+  ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
+}
+
+function drawUI() {
+  if (startState) {
+    drawStartMessage();
+    ui.time = "00:00"
+  } else {
+    let dt = (new Date().getTime() - startTime.getTime())/1000
+    var sec = Math.floor(dt%60);
+    var min = Math.floor(dt/60);
+    ui.time = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
+  }
+  // Time
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Time: "+ui.time,1,20)
+  // Lives
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Lives: "+ui.lives,1,40)
+  // Score
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Score: "+ui.score,1,60)
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (endState) {
-    let text = "GAME OVER"
-    ctx.font = "50px Arial";
-    ctx.fillStyle = "Red"
-    ctx.textAlign = "Center"
-    ctx.textBaseLine = "Middle"
-    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
-    text = "Press Enter to retry"
-    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2+50)
+    drawGameOver();
     return;
   }
 
-  if (startState) {
-    let text = "Press Enter"
-    ctx.font = "30px Arial";
-    ctx.fillStyle = "Blue"
-    ctx.textAlign = "Center"
-    ctx.textBaseLine = "Middle"
-    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
-  }
-
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#0095DD";
-  ctx.fillText("Lives: "+lives,1,20)
+  drawUI();
   drawPaddle()
   drawBall();
   updatePaddle();
@@ -154,6 +196,7 @@ function keyDownHandler(e) {
         endState = false
       } else {
         startState = false
+        startTime = new Date()
       }
       break;
   }
