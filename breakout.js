@@ -2,15 +2,17 @@ const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 let leftPressed = false
 let rightPressed = false
-let startState = true // Start of the game, press enter to launch the ball
+let serveState = true // Start of the game, press enter to launch the ball
 let endState = false // Game over state
-let startTime = new Date();
+
+let startTime = new Date().getTime();
+let prevTime = 0
+
 let ui = {
   time: "00:00",
   lives: 3,
   score: 0,
 }
-let lives = 3
 
 let paddle = {
   w: 80, // width
@@ -75,11 +77,10 @@ function drawStartMessage() {
 }
 
 function drawUI() {
-  if (startState) {
+  if (serveState) {
     drawStartMessage();
-    ui.time = "00:00"
   } else {
-    let dt = (new Date().getTime() - startTime.getTime())/1000
+    let dt = (new Date().getTime() - startTime)/1000 + prevTime
     var sec = Math.floor(dt%60);
     var min = Math.floor(dt/60);
     ui.time = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
@@ -114,7 +115,7 @@ function draw() {
 }
 
 function updateBall() {
-  if (startState) {
+  if (serveState) {
     ball.x = paddle.x + paddle.w/2
     ball.y = paddle.y - 10
   } else {
@@ -147,9 +148,10 @@ function screenCollission() {
     ball.y = 2*ball.r-ball.y
   } else if (ball.y >= canvas.height + ball.r) { //Bottom screen collision
     // lives should subtract, game should reset
-    lives--
-    if (lives > 0) {
-      startState = true
+    ui.lives--
+    if (ui.lives > 0) {
+      prevTime += (new Date().getTime() - startTime)/1000
+      serveState = true
       ball.dx = 2
       ball.dy = -2
       ball.x = paddle.x + paddle.w/2
@@ -191,12 +193,15 @@ function keyDownHandler(e) {
       break;
     case "Enter":
       if (endState) {
-        lives = 3
-        startState = true
+        ui.lives = 3
+        ui.score = 0
+        ui.time = "0:00"
+        serveState = true
         endState = false
       } else {
-        startState = false
-        startTime = new Date()
+        serveState = false
+        startTime = new Date().getTime()
+        // update startTime somehow
       }
       break;
   }
