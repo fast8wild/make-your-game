@@ -2,13 +2,9 @@ const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 let leftPressed = false
 let rightPressed = false
-let ball = {
-  r: 10, // radius
-  x: canvas.width/2, // center x
-  y: canvas.height-30, // center y
-  dx: 2,
-  dy: -2
-}
+let startState = true // Start of the game, press enter to launch the ball
+let endState = false // Game over state
+let lives = 3
 
 let paddle = {
   w: 80, // width
@@ -16,6 +12,14 @@ let paddle = {
   x: canvas.width/2 - 80/2, // top left x
   y: canvas.height - 15 - 5, // top left y
   dx: 4,
+}
+
+let ball = {
+  r: 10, // radius
+  x: paddle.x + paddle.w/2, // center x
+  y: paddle.y - 10, // center y
+  dx: 2,
+  dy: -2
 }
 
 let tolerance = 10 // margin of error of hitting paddle
@@ -36,17 +40,47 @@ function drawPaddle() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (endState) {
+    let text = "GAME OVER"
+    ctx.font = "50px Arial";
+    ctx.fillStyle = "Red"
+    ctx.textAlign = "Center"
+    ctx.textBaseLine = "Middle"
+    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
+    text = "Press Enter to retry"
+    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2+50)
+    return;
+  }
+
+  if (startState) {
+    let text = "Press Enter"
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "Blue"
+    ctx.textAlign = "Center"
+    ctx.textBaseLine = "Middle"
+    ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
+  }
+
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#0095DD";
+  ctx.fillText("Lives: "+lives,1,20)
   drawPaddle()
   drawBall();
-  updateBall();
   updatePaddle();
+  updateBall();
 }
 
 function updateBall() {
-  ball.x += ball.dx;
-  ball.y += ball.dy;
-  screenCollission()
-  paddleCollission()
+  if (startState) {
+    ball.x = paddle.x + paddle.w/2
+    ball.y = paddle.y - 10
+  } else {
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+    screenCollission()
+    paddleCollission()
+  }
 }
 
 function updatePaddle() {
@@ -71,10 +105,16 @@ function screenCollission() {
     ball.y = 2*ball.r-ball.y
   } else if (ball.y >= canvas.height + ball.r) { //Bottom screen collision
     // lives should subtract, game should reset
-    ball.dx = 2
-    ball.dy = -2
-    ball.x = paddle.x + paddle.w/2
-    ball.y = paddle.y - ball.r
+    lives--
+    if (lives > 0) {
+      startState = true
+      ball.dx = 2
+      ball.dy = -2
+      ball.x = paddle.x + paddle.w/2
+      ball.y = paddle.y - ball.r
+    } else {
+      endState = true
+    }
   }
 }
 
@@ -88,7 +128,7 @@ function paddleCollission() {
     ball.dy *= -1
     // speed multiplyer on edge hits: 
     let diff = Math.max(0.7,Math.abs(ball.x - paddle.x - paddle.w/2)/(paddle.w/2)) // How far away it is from the center from 0 to 1
-    ball.dx = ball.dx/ball.dx * diff*3
+    ball.dx > 0 ? ball.dx = diff*3 : ball.dx = -diff*3;
     ball.dy = -diff*3
 
   } else if ( // Side paddle collission
@@ -100,18 +140,33 @@ function paddleCollission() {
 }
 
 function keyDownHandler(e) {
-  if (e.key === "Right" || e.key === "ArrowRight") {
-    rightPressed = true;
-  } else if (e.key === "Left" || e.key === "ArrowLeft") {
-    leftPressed = true;
+  switch (e.key) {
+    case "Right", "ArrowRight":
+      rightPressed = true;
+      break;
+    case "Left", "ArrowLeft":
+      leftPressed = true;
+      break;
+    case "Enter":
+      if (endState) {
+        lives = 3
+        startState = true
+        endState = false
+      } else {
+        startState = false
+      }
+      break;
   }
 }
 
 function keyUpHandler(e) {
-  if (e.key === "Right" || e.key === "ArrowRight") {
-    rightPressed = false;
-  } else if (e.key === "Left" || e.key === "ArrowLeft") {
-    leftPressed = false;
+  switch (e.key) {
+    case "Right", "ArrowRight":
+      rightPressed = false;
+      break;
+    case "Left", "ArrowLeft":
+      leftPressed = false;
+      break;
   }
 }
 
