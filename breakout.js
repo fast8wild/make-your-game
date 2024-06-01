@@ -5,8 +5,8 @@ let rightPressed = false
 let serveState = true // Start of the game, press enter to launch the ball
 let endState = false // Game over state
 
-let startTime = new Date().getTime();
-let prevTime = 0
+let startTime = new Date().getTime(); // Start of serve time
+let prevTime = 0 // Add to the time counter on retries
 
 let ui = {
   time: "00:00",
@@ -30,7 +30,7 @@ let ball = {
   dy: -2
 }
 
-let brickArray = {
+let brickSettings = {
   rowCount: 3,
   colCount: 5,
   w: 75,
@@ -38,6 +38,14 @@ let brickArray = {
   padding: 10,
   offsetTop: 30,
   offsetLeft: 30,
+}
+
+const bricks = [];
+for (let c = 0; c < brickSettings.colCount; c++) {
+  bricks[c] = [];
+  for (let r = 0; r < brickSettings.rowCount; r++) {
+    bricks[c][r] = { x: 0, y: 0 };
+  }
 }
 
 let tolerance = 10 // margin of error of hitting paddle
@@ -54,6 +62,22 @@ function drawPaddle() {
   ctx.rect(paddle.x, paddle.y, paddle.w, paddle.h)  
   ctx.fillStyle = "#8895DD";
   ctx.fill();
+}
+
+function drawBricks() {
+  for (let c = 0; c < brickSettings.colCount; c++) {
+    for (let r = 0; r < brickSettings.rowCount; r++) {
+      const brickX = c * (brickSettings.w + brickSettings.padding) + brickSettings.offsetLeft;
+      const brickY = r * (brickSettings.h + brickSettings.padding) + brickSettings.offsetTop;
+      bricks[c][r].x = brickX;
+      bricks[c][r].y = brickY;
+      ctx.beginPath();
+      ctx.rect(brickX, brickY, brickSettings.w, brickSettings.h);
+      ctx.fillStyle = "#0095DD";
+      ctx.fill();
+      ctx.closePath();
+    }
+  }
 }
 
 function drawGameOver() {
@@ -85,18 +109,19 @@ function drawUI() {
     var min = Math.floor(dt/60);
     ui.time = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
   }
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "#9995DD";
+  ctx.lineWidth = 0.1
+  ctx.strokeStyle = "white"
   // Time
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#0095DD";
   ctx.fillText("Time: "+ui.time,1,20)
+  ctx.strokeText("Time: "+ui.time,1,20)
   // Lives
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#0095DD";
   ctx.fillText("Lives: "+ui.lives,1,40)
+  ctx.strokeText("Lives: "+ui.lives,1,40)
   // Score
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#0095DD";
   ctx.fillText("Score: "+ui.score,1,60)
+  ctx.strokeText("Score: "+ui.score,1,60)
 }
 
 function draw() {
@@ -107,9 +132,10 @@ function draw() {
     return;
   }
 
-  drawUI();
   drawPaddle()
   drawBall();
+  drawBricks();
+  drawUI();
   updatePaddle();
   updateBall();
 }
@@ -198,10 +224,10 @@ function keyDownHandler(e) {
         ui.time = "0:00"
         serveState = true
         endState = false
+        prevTime = 0
       } else {
         serveState = false
         startTime = new Date().getTime()
-        // update startTime somehow
       }
       break;
   }
