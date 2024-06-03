@@ -4,6 +4,7 @@ let leftPressed = false
 let rightPressed = false
 let serveState = true // Start of the game, press enter to launch the ball
 let endState = false // Game over state
+let winState = false
 
 let startTime = new Date().getTime(); // Start of serve time
 let prevTime = 0 // Add to the time counter on retries
@@ -41,14 +42,19 @@ let brickSettings = {
 }
 
 const bricks = [];
-for (let c = 0; c < brickSettings.colCount; c++) {
-  bricks[c] = [];
-  for (let r = 0; r < brickSettings.rowCount; r++) {
-    bricks[c][r] = { x: 0, y: 0 };
+
+let tolerance = 10 // margin of error of hitting paddle
+
+function initializeBricks() {
+  for (let c = 0; c < brickSettings.colCount; c++) {
+    bricks[c] = [];
+    for (let r = 0; r < brickSettings.rowCount; r++) {
+      bricks[c][r] = { x: 0, y: 0, health: 1 };
+    }
   }
 }
 
-let tolerance = 10 // margin of error of hitting paddle
+initializeBricks();
 
 function drawBall() {
   ctx.beginPath();
@@ -67,15 +73,17 @@ function drawPaddle() {
 function drawBricks() {
   for (let c = 0; c < brickSettings.colCount; c++) {
     for (let r = 0; r < brickSettings.rowCount; r++) {
-      const brickX = c * (brickSettings.w + brickSettings.padding) + brickSettings.offsetLeft;
-      const brickY = r * (brickSettings.h + brickSettings.padding) + brickSettings.offsetTop;
-      bricks[c][r].x = brickX;
-      bricks[c][r].y = brickY;
-      ctx.beginPath();
-      ctx.rect(brickX, brickY, brickSettings.w, brickSettings.h);
-      ctx.fillStyle = "#0095DD";
-      ctx.fill();
-      ctx.closePath();
+      if (bricks[c][r].health > 0) {
+        const brickX = c * (brickSettings.w + brickSettings.padding) + brickSettings.offsetLeft;
+        const brickY = r * (brickSettings.h + brickSettings.padding) + brickSettings.offsetTop;
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+        ctx.beginPath();
+        ctx.rect(brickX, brickY, brickSettings.w, brickSettings.h);
+        ctx.fillStyle = "#0095DD";
+        ctx.fill();
+        ctx.closePath();
+      }
     }
   }
 }
@@ -88,6 +96,18 @@ function drawGameOver() {
   ctx.textBaseLine = "Middle"
   ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
   text = "Press Enter to retry"
+  ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2+50)
+}
+
+function drawWin() {
+  let text = "YOU WIN!"
+  ctx.font = "50px Arial";
+  ctx.fillStyle = "Green"
+  ctx.textAlign = "Center"
+  ctx.textBaseLine = "Middle"
+  ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2)
+  text = "Press Enter for the next level"
+  ctx.font = "30px Arial";
   ctx.fillText(text,canvas.width/2-ctx.measureText(text).width/2, canvas.height/2+50)
 }
 
@@ -131,6 +151,10 @@ function draw() {
     drawGameOver();
     return;
   }
+  if (winState) {
+    drawWin();
+    return;
+  }
 
   drawPaddle()
   drawBall();
@@ -138,6 +162,8 @@ function draw() {
   drawUI();
   updatePaddle();
   updateBall();
+  
+  requestAnimationFrame(draw);
 }
 
 function updateBall() {
@@ -149,6 +175,7 @@ function updateBall() {
     ball.y += ball.dy;
     screenCollission()
     paddleCollission()
+    brickCollission()
   }
 }
 
@@ -209,6 +236,33 @@ function paddleCollission() {
   }
 }
 
+function brickCollission() {
+  let levelClear = true
+  for (let c = 0; c < brickSettings.colCount; c++) {
+    for (let r = 0; r < brickSettings.rowCount; r++) {
+      const brick = bricks[c][r];
+      if (brick.health > 0) {
+        if (
+          ball.x > brick.x &&
+          ball.x < brick.x + brickSettings.w &&
+          ball.y > brick.y &&
+          ball.y < brick.y + brickSettings.h
+        ) {
+          ui.score += 10*brick.health
+          ball.dy *= -1;
+          brick.health--;
+        } else {
+          levelClear = false
+        }
+      }
+    }
+  }
+  if (levelClear) {
+    prevTime += (new Date().getTime() - startTime)/1000
+    winState = true
+  }
+}
+
 function keyDownHandler(e) {
   switch (e.key) {
     case "Right", "ArrowRight":
@@ -219,12 +273,18 @@ function keyDownHandler(e) {
       break;
     case "Enter":
       if (endState) {
+        initializeBricks();
         ui.lives = 3
         ui.score = 0
         ui.time = "0:00"
         serveState = true
         endState = false
         prevTime = 0
+      } if (winState) {
+        initializeBricks();
+        winState = false
+        serveState = true
+        endState = false
       } else {
         serveState = false
         startTime = new Date().getTime()
@@ -248,10 +308,11 @@ document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 
 function startGame() {
-  const interval = setInterval(draw, 10);
+  draw();
 }
 
 document.getElementById("runButton").addEventListener("click", function () {
   startGame();
   this.disabled = true;
 });
+
