@@ -51,7 +51,6 @@ function initializeBricks() {
       const brickX = c * (brickSettings.w + brickSettings.padding) + brickSettings.offsetLeft;
       const brickY = r * (brickSettings.h + brickSettings.padding) + brickSettings.offsetTop;
       bricks[c][r] = { x: brickX, y: brickY, health: Math.min(3,Math.floor(Math.random()*(ui.level+1))) };
-      console.log(bricks[c][r].health)
     }
   }
 }
@@ -258,10 +257,10 @@ function brickCollission() {
       const brick = bricks[c][r];
       if (brick.health > 0) {
         if (
-          ball.x >= brick.x &&
-          ball.x <= brick.x + brickSettings.w &&
-          ball.y >= brick.y &&
-          ball.y <= brick.y + brickSettings.h
+          ball.x + ball.r >= brick.x &&
+          ball.x - ball.r <= brick.x + brickSettings.w &&
+          ball.y + ball.r >= brick.y &&
+          ball.y - ball.r <= brick.y + brickSettings.h
         ) {
           ui.score += 10 * brick.health * ui.level
           ball.dy *= -1;
