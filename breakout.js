@@ -1,25 +1,34 @@
-const canvas = document.getElementById("myCanvas");
-const ctx = canvas.getContext("2d");
+const gameWindow = document.getElementById("gameWindow");
 let leftPressed = false
 let rightPressed = false
-let gameState = 1; //-1: Game Over 0: In-Play, 1: Serve, 2: Win]
+let gameState = -2; //-2 Title, -1: Game Over 0: In-Play, 1: Serve, 2: Win, 3: Pause
 
 let startTime = new Date().getTime(); // Start of serve time
 let prevTime = 0 // Add to the time counter on retries
+var lastCalledTime;
+var delta;
+let totaltime = 0
 
 const ui = {
   time: "00:00",
   lives: 3,
   score: 0,
   level: 1,
+  html: {
+    bigText: document.getElementById("bigText"),
+    subText: document.getElementById("subText"),
+    hud: document.getElementById("hud")
+  }
 }
 
 const paddle = {
   w: 80, // width
   h: 15, // height
-  x: canvas.width / 2 - 80 / 2, // top left x
-  y: canvas.height - 15 - 5, // top left y
+  x: gameWindow.offsetWidth / 2 - 80 / 2, // top left x
+  y: gameWindow.offsetHeight - 15 - 5, // top left y
   dx: 4,
+  tolerance: 10, // margin of error of hitting paddle
+  html: null,
 }
 
 const ball = {
@@ -27,7 +36,8 @@ const ball = {
   x: paddle.x + paddle.w / 2, // center x
   y: paddle.y - 10, // center y
   dx: 2,
-  dy: -2
+  dy: -2,
+  html: null,
 }
 
 const brickSettings = {
@@ -42,142 +52,155 @@ const brickSettings = {
 
 const bricks = [];
 
-let tolerance = 10 // margin of error of hitting paddle
-
-function initializeBricks() {
+function spawnBricks() {
   for (let c = 0; c < brickSettings.colCount; c++) {
     bricks[c] = [];
     for (let r = 0; r < brickSettings.rowCount; r++) {
+      const health = Math.min(3, Math.floor(Math.random() * (ui.level + 1)))
       const brickX = c * (brickSettings.w + brickSettings.padding) + brickSettings.offsetLeft;
       const brickY = r * (brickSettings.h + brickSettings.padding) + brickSettings.offsetTop;
-      bricks[c][r] = { x: brickX, y: brickY, health: Math.min(3,Math.floor(Math.random()*(ui.level+1))) };
+      const brick = document.createElement("span")
+      brick.classList.add("brick")
+      brick.setAttribute("health", health)
+      brick.style.left = brickX + "px"
+      brick.style.top = brickY + "px"
+      brick.style.width = brickSettings.w + "px"
+      brick.style.height = brickSettings.h + "px"
+      gameWindow.append(brick)
+      bricks[c][r] = { x: brickX, y: brickY, health: health, html: brick };
     }
   }
 }
 
-initializeBricks();
-
-function drawBall() {
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-  ctx.fillStyle = "#0095DD";
-  ctx.fill();
-  ctx.closePath();
-}
-
-function drawPaddle() {
-  ctx.rect(paddle.x, paddle.y, paddle.w, paddle.h)
-  ctx.fillStyle = "#8895DD";
-  ctx.fill();
-}
-
-function drawBricks() {
+function killBricks() {
   for (let c = 0; c < brickSettings.colCount; c++) {
     for (let r = 0; r < brickSettings.rowCount; r++) {
-      const brick = bricks[c][r]
-      if (brick.health > 0) {
-        ctx.beginPath();
-        ctx.rect(brick.x, brick.y, brickSettings.w, brickSettings.h);
-        switch (brick.health) {
-          case 3:
-            ctx.fillStyle = "#DD0095";
-            break;
-          case 2:
-            ctx.fillStyle = "#95DD00";
-            break;
-          default:
-            ctx.fillStyle = "#0095DD";
-            break;
-        }
-        ctx.fill();
-        ctx.closePath();
-      }
+      bricks[c][r].html.remove()
     }
   }
+}
+
+function spawnBall() {
+  ball.x = paddle.x + paddle.w / 2
+  ball.y = paddle.y - 10
+  ball.html = document.createElement("span")
+  ball.html.id = "ball"
+  ball.html.style.left = (ball.x - ball.r) + "px"
+  ball.html.style.top = (ball.y - ball.r) + "px"
+  ball.html.style.height = 2 * ball.r + "px"
+  ball.html.style.width = 2 * ball.r + "px"
+  ball.html.style.display = "block"
+  gameWindow.append(ball.html)
+}
+
+function moveBall() {
+  ball.html.style.left = (ball.x - ball.r) + "px"
+  ball.html.style.top = (ball.y - ball.r) + "px"
+}
+
+function killBall() {
+  ball.html.remove()
+  ball.html = null
+}
+
+function spawnPaddle() {
+  paddle.x = gameWindow.offsetWidth / 2 - paddle.w / 2, // top left x
+    paddle.y = gameWindow.offsetHeight - 15 - 5, // top left y
+    paddle.html = document.createElement("span")
+  paddle.html.id = "paddle"
+  paddle.html.style.left = paddle.x + "px"
+  paddle.html.style.top = paddle.y + "px"
+  paddle.html.style.height = paddle.h + "px"
+  paddle.html.style.width = paddle.w + "px"
+  gameWindow.append(paddle.html)
+}
+
+function movePaddle() {
+  paddle.html.style.left = paddle.x + "px"
+  paddle.html.style.top = paddle.y + "px"
+}
+
+function killPaddle() {
+  paddle.html.remove()
+  paddle.html = null
+}
+
+function drawHUD() {
+  ui.html.hud.style.display = "block"
+  updateHUD();
 }
 
 function drawGameOver() {
-  let text = "GAME OVER"
-  ctx.font = "50px Arial";
-  ctx.fillStyle = "Red"
-  ctx.textAlign = "Center"
-  ctx.textBaseLine = "Middle"
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2)
-  text = "Press Enter to retry"
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2 + 50)
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "GAME OVER"
+  ui.html.bigText.setAttribute("state", "gameOver")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter to retry"
+  ui.html.subText.setAttribute("state", "gameOver")
 }
 
 function drawWin() {
-  let text = "YOU WIN!"
-  ctx.font = "50px Arial";
-  ctx.fillStyle = "Green"
-  ctx.textAlign = "Center"
-  ctx.textBaseLine = "Middle"
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2)
-  text = "Press Enter for the next level"
-  ctx.font = "30px Arial";
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2 + 50)
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "YOU WIN!"
+  ui.html.bigText.setAttribute("state", "win")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter for the next level"
+  ui.html.subText.setAttribute("state", "win")
 }
 
-function drawStartMessage() {
-  let text = "Press Enter"
-  ctx.font = "30px Arial";
-  ctx.fillStyle = "Blue"
-  ctx.textAlign = "Center"
-  ctx.textBaseLine = "Middle"
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2)
+function drawServeMessage() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "Press Enter"
+  ui.html.bigText.setAttribute("state", "serve")
 }
 
-function drawUI() {
+function drawTitleScreen() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "Breakout!"
+  ui.html.bigText.setAttribute("state", "serve")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter"
+  ui.html.subText.setAttribute("state", "serve")
+}
+
+function updateHUD() {
+
   if (gameState == 0) { // Calcilate time only when the ball is in-play
-    let dt = (new Date().getTime() - startTime) / 1000 + prevTime
+    const dt = (new Date().getTime() - startTime) / 1000 + prevTime
     var sec = Math.floor(dt % 60);
     var min = Math.floor(dt / 60);
     ui.time = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
+
   }
-  ctx.font = "20px Arial";
-  ctx.fillStyle = "#9995DD";
-  ctx.lineWidth = 0.1
-  ctx.strokeStyle = "white"
-  // Time
-  ctx.fillText("Time: " + ui.time, 1, 20)
-  ctx.strokeText("Time: " + ui.time, 1, 20)
-  // Lives
-  ctx.fillText("Lives: " + ui.lives, 1, 40)
-  ctx.strokeText("Lives: " + ui.lives, 1, 40)
-  // Level
-  ctx.fillText("Level: " + ui.level, 1, 60)
-  ctx.strokeText("Level: " + ui.level, 1, 60)
-  // Score
-  ctx.fillText("Score: " + ui.score, 1, 80)
-  ctx.strokeText("Score: " + ui.score, 1, 80)
+  ui.html.hud.innerHTML = "Level: " + ui.level + "\nTime: " + ui.time + "\nLives: " + ui.lives + "\nScore: " + ui.score + "\nFPS: " + Math.ceil(totaltime)
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function clearUI() {
+  ui.html.hud.style.display = "none"
+  ui.html.bigText.style.display = "none"
+  ui.html.subText.style.display = "none"
+}
+
+function main() {
+
+  if (!lastCalledTime) {
+    lastCalledTime = Date.now();
+  }
+  delta = (Date.now() - lastCalledTime) / 1000;
+  totaltime += delta
+  lastCalledTime = Date.now();
+
   switch (gameState) {
-    case -1: // Game Over
-      drawGameOver();
-      break;
     case 1: // Serve
-      drawStartMessage();
     case 0: //In-play
-      drawPaddle()
-      drawBall();
-      drawBricks();
-      drawUI();
+      movePaddle()
+      moveBall();
+      updateHUD();
       updatePaddle();
       updateBall();
       break;
-    case 2:
-      drawWin()
-      break;
   }
-
-  requestAnimationFrame(draw);
-}
-
-function drawActiveGame() {
+  requestAnimationFrame(main);
 }
 
 function updateBall() {
@@ -198,14 +221,14 @@ function updatePaddle() {
     paddle.x = Math.max(0, paddle.x - paddle.dx)
   }
   if (rightPressed) {
-    paddle.x = Math.min(canvas.width - paddle.w, paddle.x + paddle.dx)
+    paddle.x = Math.min(gameWindow.offsetWidth - paddle.w, paddle.x + paddle.dx)
   }
 }
 
 function screenCollission() {
-  if (ball.x >= canvas.width - ball.r) { // Right screen collision
+  if (ball.x >= gameWindow.offsetWidth - ball.r) { // Right screen collision
     ball.dx *= -1
-    ball.x = 2 * (canvas.width - ball.r) - ball.x
+    ball.x = 2 * (gameWindow.offsetWidth - ball.r) - ball.x
   } else if (ball.x <= ball.r) { // Left screen collision
     ball.dx *= -1
     ball.x = 2 * ball.r - ball.x
@@ -213,18 +236,20 @@ function screenCollission() {
   if (ball.y <= ball.r) { // Top screen collision
     ball.dy *= -1
     ball.y = 2 * ball.r - ball.y
-  } else if (ball.y >= canvas.height + ball.r) { //Bottom screen collision
-    // lives should subtract, game should reset
+  } else if (ball.y >= gameWindow.offsetHeight + ball.r) { //Bottom screen collision
     ui.lives--
     if (ui.lives > 0) {
       prevTime += (new Date().getTime() - startTime) / 1000
-      gameState = 1
+      gameState = 1;
+      drawServeMessage();
       ball.dx = 2
       ball.dy = -2
       ball.x = paddle.x + paddle.w / 2
       ball.y = paddle.y - ball.r
     } else {
-      gameState = -1
+      gameState = -1;
+      clearUI();
+      drawGameOver();
     }
   }
 }
@@ -233,7 +258,7 @@ function paddleCollission() {
   if ( //Bottom paddle collision
     ball.dy > 0 &&
     ball.y + ball.r >= paddle.y &&
-    ball.y + ball.r <= paddle.y + tolerance &&
+    ball.y + ball.r <= paddle.y + paddle.tolerance &&
     ball.x + ball.r >= paddle.x &&
     ball.x - ball.r <= paddle.x + paddle.w) {
     ball.dy *= -1
@@ -243,7 +268,7 @@ function paddleCollission() {
     ball.dy = -diff * 3
 
   } else if ( // Side paddle collission
-    ball.y + ball.r > paddle.y + tolerance &&
+    ball.y + ball.r > paddle.y + paddle.tolerance &&
     ball.x + ball.r >= paddle.x &&
     ball.x - ball.r <= paddle.x + paddle.w) {
     ball.dx *= -1
@@ -265,6 +290,7 @@ function brickCollission() {
           ui.score += 10 * brick.health * ui.level
           ball.dy *= -1;
           brick.health--;
+          brick.html.setAttribute("health", brick.health)
         } else {
           levelClear = false
         }
@@ -273,7 +299,12 @@ function brickCollission() {
   }
   if (levelClear) {
     prevTime += (new Date().getTime() - startTime) / 1000
+    killBall()
+    killPaddle()
+    killBricks()
     gameState = 2
+    clearUI()
+    drawWin()
   }
 }
 
@@ -286,24 +317,46 @@ function keyDownHandler(e) {
       leftPressed = true;
       break;
     case "Enter":
+      clearUI();
       switch (gameState) {
+        case -2: // start new game
         case -1: // Reset from game over
-          initializeBricks();
+          spawnBricks();
+          spawnPaddle();
+          spawnBall();
+          drawServeMessage();
+          drawHUD();
           gameState = 1;
           ui.lives = 3
           ui.score = 0
-          ui.time = "0:00"
+          ui.time = "00:00"
           ui.level = 1
           prevTime = 0
           break;
         case 2: // Win state, reset the board and go back to serve
-          initializeBricks();
+          spawnBricks();
+          spawnPaddle();
+          spawnBall();
+          drawServeMessage();
+          drawHUD();
           gameState = 1;
           ui.level++
           break;
         case 1: // Serve the ball
+          drawHUD();
           gameState = 0
           startTime = new Date().getTime()
+          break;
+        case 0: // Pause
+          drawHUD();
+          gameState = 3
+          prevTime += (new Date().getTime() - startTime) / 1000
+          break;
+        case 3: // Unpause
+          drawHUD();
+          gameState = 0
+          startTime = new Date().getTime()
+          break;
       }
       break;
   }
@@ -323,12 +376,5 @@ function keyUpHandler(e) {
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
 
-function startGame() {
-  draw();
-}
-
-document.getElementById("runButton").addEventListener("click", function () {
-  startGame();
-  this.disabled = true;
-});
-
+drawTitleScreen();
+main();

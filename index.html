@@ -10,21 +10,102 @@
             margin: 0;
         }
 
-        canvas {
+        #gameWindow {
             background: #eee;
             display: block;
             margin: 0 auto;
+            position: relative;
+            width: 480px;
+            height: 320px;
         }
 
-        button {
+        #ball {
+            position: absolute;
+            background-color: #004fd7;
+            border-radius: 50%;
+        }
+
+        #paddle {
+            position: absolute;
+            background-color: #0026ff;
+        }
+
+        #hud {
             display: block;
+            position: absolute;
+            font-size: 20px;
+            top: 0px;
+            left: 0px;
+            width: 100px;
+            color: #9995DD;
+            word-wrap: normal;
+        }
+
+        #bigText {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 50px;
+            display: block;
+            position: absolute;
+            text-align: center;
+            top: 135px;
+            width: 100%;
+        }
+
+        #bigText[state="gameOver"] {
+            color: red;
+        }
+
+        #bigText[state="win"] {
+            color: green;
+        }
+
+        #bigText[state="serve"] {
+            color: #0026ff;
+        }
+
+        #subText {
+            font-family: Arial, Helvetica, sans-serif;
+            position: absolute;
+            display: block;
+            font-size: 30px;
+            text-align: center;
+            padding-top: 40%;
+            width: 100%;
+        }
+
+        #subText[state="gameOver"] {
+            color: red;
+        }
+
+        #subText[state="win"] {
+            color: green;
+        }
+
+        #subText[state="serve"] {
+            color: #0026ff;
+        }
+
+        .brick {
+            position: absolute;
+        }
+        .brick[health="1"] {
+            background-color: #0095DD;
+        }
+        .brick[health="2"] {
+            background-color: #95DD00;
+        }
+        .brick[health="3"] {
+            background-color: #DD0095;
         }
     </style>
 </head>
 
 <body>
-    <canvas id="myCanvas" width="480" height="320"></canvas>
-    <button id="runButton">Start game</button>
+    <div id="gameWindow">
+        <div id="bigText"></div>
+        <div id="subText"></div>
+        <div id="hud"></div>
+    </div>
 
     <script src="breakout.js"> </script>
 </body>
