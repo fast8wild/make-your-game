@@ -3,21 +3,19 @@ let leftPressed = false
 let rightPressed = false
 let gameState = -2; //-2 Title, -1: Game Over 0: In-Play, 1: Serve, 2: Win, 3: Pause
 
-let startTime = new Date().getTime(); // Start of serve time
-let prevTime = 0 // Add to the time counter on retries
-var lastCalledTime;
+let lastCalledTime = Date.now();
 var delta;
-let totaltime = 0
 
 const ui = {
-  time: "00:00",
+  time: 0,
   lives: 3,
   score: 0,
   level: 1,
   html: {
     bigText: document.getElementById("bigText"),
     subText: document.getElementById("subText"),
-    hud: document.getElementById("hud")
+    hud: document.getElementById("hud"),
+    ms: document.getElementById("ms")
   }
 }
 
@@ -149,9 +147,9 @@ function drawWin() {
 }
 
 function drawServeMessage() {
-  ui.html.bigText.style.display = "block"
-  ui.html.bigText.innerHTML = "Press Enter"
-  ui.html.bigText.setAttribute("state", "serve")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter to serve"
+  ui.html.subText.setAttribute("state", "serve")
 }
 
 function drawTitleScreen() {
@@ -164,15 +162,10 @@ function drawTitleScreen() {
 }
 
 function updateHUD() {
-
-  if (gameState == 0) { // Calcilate time only when the ball is in-play
-    const dt = (new Date().getTime() - startTime) / 1000 + prevTime
-    var sec = Math.floor(dt % 60);
-    var min = Math.floor(dt / 60);
-    ui.time = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
-
-  }
-  ui.html.hud.innerHTML = "Level: " + ui.level + "\nTime: " + ui.time + "\nLives: " + ui.lives + "\nScore: " + ui.score + "\nFPS: " + Math.ceil(totaltime)
+  gameState == 1 ? ui.time += delta : null ;
+  var sec = Math.floor(ui.time % 60);
+  var min = Math.floor(ui.time / 60);
+  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "\nLives: " + ui.lives + "\nLevel: " + ui.level +  "\nScore: " + ui.score
 }
 
 function clearUI() {
@@ -182,17 +175,13 @@ function clearUI() {
 }
 
 function main() {
-
-  if (!lastCalledTime) {
-    lastCalledTime = Date.now();
-  }
   delta = (Date.now() - lastCalledTime) / 1000;
-  totaltime += delta
   lastCalledTime = Date.now();
+  ui.html.ms.innerHTML = "ms: " + delta
 
   switch (gameState) {
-    case 1: // Serve
     case 0: //In-play
+    case 1: // Serve
       movePaddle()
       moveBall();
       updateHUD();
@@ -239,7 +228,6 @@ function screenCollission() {
   } else if (ball.y >= gameWindow.offsetHeight + ball.r) { //Bottom screen collision
     ui.lives--
     if (ui.lives > 0) {
-      prevTime += (new Date().getTime() - startTime) / 1000
       gameState = 1;
       drawServeMessage();
       ball.dx = 2
@@ -298,7 +286,6 @@ function brickCollission() {
     }
   }
   if (levelClear) {
-    prevTime += (new Date().getTime() - startTime) / 1000
     killBall()
     killPaddle()
     killBricks()
@@ -329,9 +316,8 @@ function keyDownHandler(e) {
           gameState = 1;
           ui.lives = 3
           ui.score = 0
-          ui.time = "00:00"
+          ui.time = 0
           ui.level = 1
-          prevTime = 0
           break;
         case 2: // Win state, reset the board and go back to serve
           spawnBricks();
@@ -345,17 +331,14 @@ function keyDownHandler(e) {
         case 1: // Serve the ball
           drawHUD();
           gameState = 0
-          startTime = new Date().getTime()
           break;
         case 0: // Pause
           drawHUD();
           gameState = 3
-          prevTime += (new Date().getTime() - startTime) / 1000
           break;
         case 3: // Unpause
           drawHUD();
           gameState = 0
-          startTime = new Date().getTime()
           break;
       }
       break;
