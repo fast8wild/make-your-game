@@ -267,7 +267,7 @@ function updateHUD() {
   gameState == 0 ? ui.time += delta : null ;
   var sec = Math.floor(ui.time % 60);
   var min = Math.floor(ui.time / 60);
-  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "\nLives: " + ui.lives + "\nLevel: " + ui.level +  "\nScore: " + ui.score
+  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "<br>Lives: " + ui.lives + "<br>Level: " + ui.level +  "<br>Score: " + ui.score
 }
 
 function drawGameOver() {
