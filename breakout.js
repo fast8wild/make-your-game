@@ -50,6 +50,8 @@ const brickSettings = {
 
 const bricks = [];
 
+// --- BRICKS ---
+
 function spawnBricks() {
   for (let c = 0; c < brickSettings.colCount; c++) {
     bricks[c] = [];
@@ -78,6 +80,8 @@ function killBricks() {
   }
 }
 
+// --- BALL ---
+
 function spawnBall() {
   ball.x = paddle.x + paddle.w / 2
   ball.y = paddle.y - 10
@@ -101,6 +105,8 @@ function killBall() {
   ball.html = null
 }
 
+// --- PADDLE ---
+
 function spawnPaddle() {
   paddle.x = gameWindow.offsetWidth / 2 - paddle.w / 2, // top left x
     paddle.y = gameWindow.offsetHeight - 15 - 5, // top left y
@@ -123,96 +129,7 @@ function killPaddle() {
   paddle.html = null
 }
 
-function drawHUD() {
-  ui.html.hud.style.display = "block"
-  updateHUD();
-}
-
-function drawGameOver() {
-  ui.html.bigText.style.display = "block"
-  ui.html.bigText.innerHTML = "GAME OVER"
-  ui.html.bigText.setAttribute("state", "gameOver")
-  ui.html.subText.style.display = "block"
-  ui.html.subText.innerHTML = "Press Enter to retry"
-  ui.html.subText.setAttribute("state", "gameOver")
-}
-
-function drawWin() {
-  ui.html.bigText.style.display = "block"
-  ui.html.bigText.innerHTML = "YOU WIN!"
-  ui.html.bigText.setAttribute("state", "win")
-  ui.html.subText.style.display = "block"
-  ui.html.subText.innerHTML = "Press Enter for the next level"
-  ui.html.subText.setAttribute("state", "win")
-}
-
-function drawServeMessage() {
-  ui.html.subText.style.display = "block"
-  ui.html.subText.innerHTML = "Press Enter to serve"
-  ui.html.subText.setAttribute("state", "serve")
-}
-
-function drawTitleScreen() {
-  ui.html.bigText.style.display = "block"
-  ui.html.bigText.innerHTML = "Breakout!"
-  ui.html.bigText.setAttribute("state", "serve")
-  ui.html.subText.style.display = "block"
-  ui.html.subText.innerHTML = "Press Enter"
-  ui.html.subText.setAttribute("state", "serve")
-}
-
-function updateHUD() {
-  gameState == 1 ? ui.time += delta : null ;
-  var sec = Math.floor(ui.time % 60);
-  var min = Math.floor(ui.time / 60);
-  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "\nLives: " + ui.lives + "\nLevel: " + ui.level +  "\nScore: " + ui.score
-}
-
-function clearUI() {
-  ui.html.hud.style.display = "none"
-  ui.html.bigText.style.display = "none"
-  ui.html.subText.style.display = "none"
-}
-
-function main() {
-  delta = (Date.now() - lastCalledTime) / 1000;
-  lastCalledTime = Date.now();
-  ui.html.ms.innerHTML = "ms: " + delta
-
-  switch (gameState) {
-    case 0: //In-play
-    case 1: // Serve
-      movePaddle()
-      moveBall();
-      updateHUD();
-      updatePaddle();
-      updateBall();
-      break;
-  }
-  requestAnimationFrame(main);
-}
-
-function updateBall() {
-  if (gameState == 1) { // Stick the ball to the paddle on serve
-    ball.x = paddle.x + paddle.w / 2
-    ball.y = paddle.y - 10
-  } else {
-    ball.x += ball.dx;
-    ball.y += ball.dy;
-    screenCollission()
-    paddleCollission()
-    brickCollission()
-  }
-}
-
-function updatePaddle() {
-  if (leftPressed) {
-    paddle.x = Math.max(0, paddle.x - paddle.dx)
-  }
-  if (rightPressed) {
-    paddle.x = Math.min(gameWindow.offsetWidth - paddle.w, paddle.x + paddle.dx)
-  }
-}
+// -- MOVEMENT AND COLLISION ---
 
 function screenCollission() {
   if (ball.x >= gameWindow.offsetWidth - ball.r) { // Right screen collision
@@ -237,6 +154,9 @@ function screenCollission() {
     } else {
       gameState = -1;
       clearUI();
+      killBall()
+      killPaddle()
+      killBricks()
       drawGameOver();
     }
   }
@@ -269,22 +189,40 @@ function brickCollission() {
     for (let r = 0; r < brickSettings.rowCount; r++) {
       const brick = bricks[c][r];
       if (brick.health > 0) {
+        // Check if ball is within the dimensions of the brick
         if (
           ball.x + ball.r >= brick.x &&
           ball.x - ball.r <= brick.x + brickSettings.w &&
           ball.y + ball.r >= brick.y &&
           ball.y - ball.r <= brick.y + brickSettings.h
         ) {
+          // Update score and leath
           ui.score += 10 * brick.health * ui.level
-          ball.dy *= -1;
           brick.health--;
           brick.html.setAttribute("health", brick.health)
+          if (brick.health > 0) {
+            levelClear = false
+          }
+          // Vary the x and y directions based on the ball's center position relative to the brick
+          if (
+            (ball.x < brick.x && ball.dx >  0) ||
+            (ball.x > brick.x+brickSettings.w && ball.dx < 0)
+          ) {
+            ball.dx *=-1
+          }
+          if (
+            (ball.y < brick.y && ball.dy > 0) ||
+            (ball.y > brick.y + brickSettings.h && ball.dy < 0)
+          ) {
+            ball.dy *=-1
+          }
         } else {
           levelClear = false
         }
       }
     }
   }
+
   if (levelClear) {
     killBall()
     killPaddle()
@@ -293,6 +231,82 @@ function brickCollission() {
     clearUI()
     drawWin()
   }
+}
+
+
+function updateBall() {
+  if (gameState == 1) { // Stick the ball to the paddle on serve
+    ball.x = paddle.x + paddle.w / 2
+    ball.y = paddle.y - 10
+  } else {
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+    brickCollission();
+    paddleCollission();
+    screenCollission();
+  }
+}
+
+function updatePaddle() {
+  if (leftPressed) {
+    paddle.x = Math.max(0, paddle.x - paddle.dx)
+  }
+  if (rightPressed) {
+    paddle.x = Math.min(gameWindow.offsetWidth - paddle.w, paddle.x + paddle.dx)
+  }
+}
+
+// --- UI ELEMENTS ---
+
+function drawHUD() {
+  ui.html.hud.style.display = "block"
+  updateHUD();
+}
+
+function updateHUD() {
+  gameState == 0 ? ui.time += delta : null ;
+  var sec = Math.floor(ui.time % 60);
+  var min = Math.floor(ui.time / 60);
+  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "\nLives: " + ui.lives + "\nLevel: " + ui.level +  "\nScore: " + ui.score
+}
+
+function drawGameOver() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "GAME OVER"
+  ui.html.bigText.setAttribute("state", "gameOver")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Final Score: " + ui.score + "<br>Press Enter to retry"
+  ui.html.subText.setAttribute("state", "gameOver")
+}
+
+function drawWin() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "YOU WIN!"
+  ui.html.bigText.setAttribute("state", "win")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter for the next level"
+  ui.html.subText.setAttribute("state", "win")
+}
+
+function drawServeMessage() {
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter to serve"
+  ui.html.subText.setAttribute("state", "serve")
+}
+
+function drawTitleScreen() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "Breakout!"
+  ui.html.bigText.setAttribute("state", "serve")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Press Enter"
+  ui.html.subText.setAttribute("state", "serve")
+}
+
+function clearUI() {
+  ui.html.hud.style.display = "none"
+  ui.html.bigText.style.display = "none"
+  ui.html.subText.style.display = "none"
 }
 
 function keyDownHandler(e) {
@@ -358,6 +372,26 @@ function keyUpHandler(e) {
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
+
+
+function main() {
+  delta = (Date.now() - lastCalledTime) / 1000;
+  lastCalledTime = Date.now();
+  ui.html.ms.innerHTML = "ms: " + delta
+
+  switch (gameState) {
+    case 0: //In-play
+    case 1: // Serve
+      movePaddle()
+      moveBall();
+      updateHUD();
+      updatePaddle();
+      updateBall();
+      break;
+  }
+  requestAnimationFrame(main);
+}
+
 
 drawTitleScreen();
 main();
