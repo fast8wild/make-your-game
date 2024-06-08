@@ -321,13 +321,18 @@ function clearUI() {
 function keyDownHandler(e) {
   switch (e.key) {
     case "Escape":
-      if (gameState == 3) {
-        clearUI();
-        killBall()
-        killPaddle()
-        killBricks()
-        gameState = -2
-        drawTitleScreen()
+      switch (gameState) {
+        case 3: // Restart
+          clearUI();
+          killBall();
+          killPaddle();
+          killBricks();
+          gameState = -2;
+          drawTitleScreen();
+          break;
+        case 0:
+          drawPauseScreen();
+          gameState = 3
       }
       break;
     case "Right", "ArrowRight":
