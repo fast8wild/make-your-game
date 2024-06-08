@@ -299,7 +299,16 @@ function drawTitleScreen() {
   ui.html.bigText.innerHTML = "Breakout!"
   ui.html.bigText.setAttribute("state", "serve")
   ui.html.subText.style.display = "block"
-  ui.html.subText.innerHTML = "Press Enter"
+  ui.html.subText.innerHTML = "Press Enter to start"
+  ui.html.subText.setAttribute("state", "serve")
+}
+
+function drawPauseScreen() {
+  ui.html.bigText.style.display = "block"
+  ui.html.bigText.innerHTML = "Paused"
+  ui.html.bigText.setAttribute("state", "serve")
+  ui.html.subText.style.display = "block"
+  ui.html.subText.innerHTML = "Enter to continue<br>Escape to restart"
   ui.html.subText.setAttribute("state", "serve")
 }
 
@@ -310,7 +319,18 @@ function clearUI() {
 }
 
 function keyDownHandler(e) {
+  console.log(e.key)
   switch (e.key) {
+    case "Escape":
+      if (gameState == 3) {
+        clearUI();
+        killBall()
+        killPaddle()
+        killBricks()
+        gameState = -2
+        drawTitleScreen()
+      }
+      break;
     case "Right", "ArrowRight":
       rightPressed = true;
       break;
@@ -348,6 +368,7 @@ function keyDownHandler(e) {
           break;
         case 0: // Pause
           drawHUD();
+          drawPauseScreen();
           gameState = 3
           break;
         case 3: // Unpause
