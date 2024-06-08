@@ -319,7 +319,6 @@ function clearUI() {
 }
 
 function keyDownHandler(e) {
-  console.log(e.key)
   switch (e.key) {
     case "Escape":
       if (gameState == 3) {
