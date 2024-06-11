@@ -15,7 +15,13 @@ const ui = {
     bigText: document.getElementById("bigText"),
     subText: document.getElementById("subText"),
     hud: document.getElementById("hud"),
-    ms: document.getElementById("ms")
+    ms: document.getElementById("ms"),
+    hudElems: {
+      time: document.getElementById("time"),
+      lives: document.getElementById("lives"),
+      score: document.getElementById("score"),
+      level: document.getElementById("level"),
+    }
   }
 }
 
@@ -87,8 +93,9 @@ function spawnBall() {
   ball.y = paddle.y - 10
   ball.html = document.createElement("span")
   ball.html.id = "ball"
-  ball.html.style.left = (ball.x - ball.r) + "px"
-  ball.html.style.top = (ball.y - ball.r) + "px"
+  ball.html.style.left = "0px"
+  ball.html.style.top = "0px"
+  ball.html.style.transform = "translate(" + (ball.x- ball.r) + "px, " + (ball.y- ball.r) + "px)"
   ball.html.style.height = 2 * ball.r + "px"
   ball.html.style.width = 2 * ball.r + "px"
   ball.html.style.display = "block"
@@ -96,8 +103,9 @@ function spawnBall() {
 }
 
 function moveBall() {
-  ball.html.style.left = (ball.x - ball.r) + "px"
-  ball.html.style.top = (ball.y - ball.r) + "px"
+  //ball.html.style.left = (ball.x - ball.r) + "px"
+  //ball.html.style.top = (ball.y - ball.r) + "px"
+  ball.html.style.transform = "translate(" + (ball.x- ball.r) + "px, " + (ball.y- ball.r) + "px)"
 }
 
 function killBall() {
@@ -109,19 +117,20 @@ function killBall() {
 
 function spawnPaddle() {
   paddle.x = gameWindow.offsetWidth / 2 - paddle.w / 2, // top left x
-    paddle.y = gameWindow.offsetHeight - 15 - 5, // top left y
-    paddle.html = document.createElement("span")
+  paddle.y = gameWindow.offsetHeight - 15 - 5, // top left y
+  paddle.html = document.createElement("span")
   paddle.html.id = "paddle"
-  paddle.html.style.left = paddle.x + "px"
-  paddle.html.style.top = paddle.y + "px"
+  paddle.html.style.left = "0px"
+  paddle.html.style.top = "0px"
   paddle.html.style.height = paddle.h + "px"
   paddle.html.style.width = paddle.w + "px"
   gameWindow.append(paddle.html)
 }
 
 function movePaddle() {
-  paddle.html.style.left = paddle.x + "px"
-  paddle.html.style.top = paddle.y + "px"
+  //paddle.html.style.left = paddle.x + "px"
+  //paddle.html.style.top = paddle.y + "px"
+  paddle.html.style.transform = "translate(" + (paddle.x) + "px, " + (paddle.y) + "px)"
 }
 
 function killPaddle() {
@@ -145,6 +154,7 @@ function screenCollission() {
   } else if (ball.y >= gameWindow.offsetHeight + ball.r) { //Bottom screen collision
     ui.lives--
     if (ui.lives > 0) {
+      ui.html.hudElems.lives.innerHTML = ui.lives
       gameState = 1;
       drawServeMessage();
       ball.dx = 2
@@ -153,7 +163,7 @@ function screenCollission() {
       ball.y = paddle.y - ball.r
     } else {
       gameState = -1;
-      clearUI();
+      clearHUD();
       killBall()
       killPaddle()
       killBricks()
@@ -198,6 +208,7 @@ function brickCollission() {
         ) {
           // Update score and leath
           ui.score += 10 * brick.health * ui.level
+          ui.html.hudElems.score.innerHTML = ui.score
           brick.health--;
           brick.html.setAttribute("health", brick.health)
           if (brick.health > 0) {
@@ -228,7 +239,7 @@ function brickCollission() {
     killPaddle()
     killBricks()
     gameState = 2
-    clearUI()
+    clearHUD()
     drawWin()
   }
 }
@@ -260,6 +271,10 @@ function updatePaddle() {
 
 function drawHUD() {
   ui.html.hud.style.display = "block"
+  gameState == 0 ? ui.time += delta : null ;
+  ui.html.hudElems.lives.innerHTML = ui.lives;
+  ui.html.hudElems.level.innerHTML = ui.level;
+  ui.html.hudElems.score.innerHTML = ui.score;
   updateHUD();
 }
 
@@ -267,7 +282,8 @@ function updateHUD() {
   gameState == 0 ? ui.time += delta : null ;
   var sec = Math.floor(ui.time % 60);
   var min = Math.floor(ui.time / 60);
-  ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "<br>Lives: " + ui.lives + "<br>Level: " + ui.level +  "<br>Score: " + ui.score
+  ui.html.hudElems.time.innerHTML = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec)
+  //ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "<br>Lives: " + ui.lives + "<br>Level: " + ui.level +  "<br>Score: " + ui.score
 }
 
 function drawGameOver() {
@@ -312,10 +328,13 @@ function drawPauseScreen() {
   ui.html.subText.setAttribute("state", "serve")
 }
 
-function clearUI() {
-  ui.html.hud.style.display = "none"
+function clearScreenText() {
   ui.html.bigText.style.display = "none"
   ui.html.subText.style.display = "none"
+}
+
+function clearHUD() {
+  ui.html.hud.style.display = "none"
 }
 
 function keyDownHandler(e) {
@@ -323,7 +342,7 @@ function keyDownHandler(e) {
     case "Escape":
       switch (gameState) {
         case 3: // Restart
-          clearUI();
+          clearHUD();
           killBall();
           killPaddle();
           killBricks();
@@ -342,42 +361,43 @@ function keyDownHandler(e) {
       leftPressed = true;
       break;
     case "Enter":
-      clearUI();
       switch (gameState) {
         case -2: // start new game
         case -1: // Reset from game over
+          clearScreenText();
           spawnBricks();
           spawnPaddle();
           spawnBall();
           drawServeMessage();
-          drawHUD();
           gameState = 1;
           ui.lives = 3
           ui.score = 0
           ui.time = 0
           ui.level = 1
+          drawHUD();
           break;
         case 2: // Win state, reset the board and go back to serve
+          clearScreenText();
           spawnBricks();
           spawnPaddle();
           spawnBall();
           drawServeMessage();
-          drawHUD();
           gameState = 1;
           ui.level++
+          drawHUD();
           break;
         case 1: // Serve the ball
-          drawHUD();
+          clearScreenText();
           gameState = 0
           break;
         case 0: // Pause
-          drawHUD();
           drawPauseScreen();
           gameState = 3
           break;
         case 3: // Unpause
-          drawHUD();
+          clearScreenText();
           gameState = 0
+          drawHUD();
           break;
       }
       break;
@@ -402,7 +422,7 @@ document.addEventListener("keyup", keyUpHandler, false);
 function main() {
   delta = (Date.now() - lastCalledTime) / 1000;
   lastCalledTime = Date.now();
-  ui.html.ms.innerHTML = "ms: " + delta
+  ui.html.ms.innerHTML = delta
 
   switch (gameState) {
     case 0: //In-play

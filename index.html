@@ -33,7 +33,7 @@
         }
 
         #hud {
-            display: block;
+            display: none;
             position: absolute;
             font-size: 20px;
             top: 0px;
@@ -45,7 +45,7 @@
             z-index: 1;
         }
 
-        #ms {
+        #mscontainer {
             display: block;
             position: absolute;
             font-size: 12px;
@@ -118,8 +118,13 @@
     <div id="gameWindow">
         <div id="bigText"></div>
         <div id="subText"></div>
-        <div id="hud"></div>
-        <div id="ms"></div>
+        <div id="hud">
+            <div>Time: <span id="time"></span></div>
+            <div>Lives: <span id="lives"></span></div>
+            <div>Level: <span id="level"></span></div>
+            <div>Score: <span id="score"></span></div>
+        </div>
+        <div id="mscontainer">ms: <span id="ms"></span></div>
     </div>
 
     <script src="breakout.js"> </script>
