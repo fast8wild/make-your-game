@@ -8,6 +8,8 @@ var delta;
 
 const ui = {
   time: 0,
+  minutes: 0,
+  seconds: 0,
   lives: 3,
   score: 0,
   level: 1,
@@ -39,6 +41,7 @@ const ball = {
   r: 10, // radius
   x: paddle.x + paddle.w / 2, // center x
   y: paddle.y - 10, // center y
+  speed: 2,
   dx: 2,
   dy: -2,
   html: null,
@@ -91,6 +94,9 @@ function killBricks() {
 function spawnBall() {
   ball.x = paddle.x + paddle.w / 2
   ball.y = paddle.y - 10
+  ball.speed = (3+ui.level/5)
+  ball.dx = ball.speed - 1
+  ball.dy = -ball.speed + 1
   ball.html = document.createElement("span")
   ball.html.id = "ball"
   ball.html.style.left = "0px"
@@ -99,6 +105,7 @@ function spawnBall() {
   ball.html.style.height = 2 * ball.r + "px"
   ball.html.style.width = 2 * ball.r + "px"
   ball.html.style.display = "block"
+  ball.html.style.willChange = "transform"
   gameWindow.append(ball.html)
 }
 
@@ -118,12 +125,15 @@ function killBall() {
 function spawnPaddle() {
   paddle.x = gameWindow.offsetWidth / 2 - paddle.w / 2, // top left x
   paddle.y = gameWindow.offsetHeight - 15 - 5, // top left y
+  paddle.dx = 4 + ui.level/5
+  paddle.dy = 4 + ui.level/5
   paddle.html = document.createElement("span")
   paddle.html.id = "paddle"
   paddle.html.style.left = "0px"
   paddle.html.style.top = "0px"
   paddle.html.style.height = paddle.h + "px"
   paddle.html.style.width = paddle.w + "px"
+  paddle.html.style.willChange = "transform"
   gameWindow.append(paddle.html)
 }
 
@@ -155,21 +165,22 @@ function screenCollission() {
     ui.lives--
     if (ui.lives > 0) {
       ui.html.hudElems.lives.innerHTML = ui.lives
-      gameState = 1;
-      drawServeMessage();
-      ball.dx = 2
-      ball.dy = -2
-      ball.x = paddle.x + paddle.w / 2
-      ball.y = paddle.y - ball.r
+      setupServe();
     } else {
       gameState = -1;
-      clearHUD();
-      killBall()
-      killPaddle()
-      killBricks()
+      killGame();
       drawGameOver();
     }
   }
+}
+
+function setupServe() {
+  gameState = 1;
+  drawServeMessage();
+  ball.dx = (ball.speed - 1)
+  ball.dy = -(ball.speed - 1)
+  ball.x = paddle.x + paddle.w / 2
+  ball.y = paddle.y - ball.r
 }
 
 function paddleCollission() {
@@ -181,9 +192,10 @@ function paddleCollission() {
     ball.x - ball.r <= paddle.x + paddle.w) {
     ball.dy *= -1
     // speed multiplyer on edge hits: 
-    let diff = Math.max(0.7, Math.abs(ball.x - paddle.x - paddle.w / 2) / (paddle.w / 2)) // How far away it is from the center from 0 to 1
-    ball.dx > 0 ? ball.dx = diff * 3 : ball.dx = -diff * 3;
-    ball.dy = -diff * 3
+    const diff = Math.abs(ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2) // How far away it is from the center from 0 to 1
+    const speed = Math.max(0.7,diff) * ball.speed
+    ball.dx > 0 ? ball.dx = speed * (1 + diff/3) : ball.dx = -speed * (1 + diff/3)
+    ball.dy = -speed * (1 + (1-diff)/3)
 
   } else if ( // Side paddle collission
     ball.y + ball.r > paddle.y + paddle.tolerance &&
@@ -235,12 +247,9 @@ function brickCollission() {
   }
 
   if (levelClear) {
-    killBall()
-    killPaddle()
-    killBricks()
     gameState = 2
-    clearHUD()
-    drawWin()
+    killGame();
+    drawWin();
   }
 }
 
@@ -271,7 +280,6 @@ function updatePaddle() {
 
 function drawHUD() {
   ui.html.hud.style.display = "block"
-  gameState == 0 ? ui.time += delta : null ;
   ui.html.hudElems.lives.innerHTML = ui.lives;
   ui.html.hudElems.level.innerHTML = ui.level;
   ui.html.hudElems.score.innerHTML = ui.score;
@@ -279,10 +287,15 @@ function drawHUD() {
 }
 
 function updateHUD() {
-  gameState == 0 ? ui.time += delta : null ;
-  var sec = Math.floor(ui.time % 60);
-  var min = Math.floor(ui.time / 60);
-  ui.html.hudElems.time.innerHTML = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec)
+  if (gameState == 0) {
+    gameState == 0 ? ui.time += delta : null ;
+    var sec = Math.floor(ui.time % 60);
+    if (sec != ui.seconds) {
+      var min = Math.floor(ui.time / 60);
+      ui.html.hudElems.time.innerHTML = (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec)
+      ui.seconds = sec
+    }
+  }
   //ui.html.hud.innerHTML = "Time: " + (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec) + "<br>Lives: " + ui.lives + "<br>Level: " + ui.level +  "<br>Score: " + ui.score
 }
 
@@ -328,6 +341,15 @@ function drawPauseScreen() {
   ui.html.subText.setAttribute("state", "serve")
 }
 
+function drawBackground() {
+  gameWindow.style.backgroundImage = "url('background.svg')";
+}
+
+function clearBackground() {
+  gameWindow.style.backgroundImage = "none"
+}
+
+
 function clearScreenText() {
   ui.html.bigText.style.display = "none"
   ui.html.subText.style.display = "none"
@@ -337,19 +359,34 @@ function clearHUD() {
   ui.html.hud.style.display = "none"
 }
 
+function killGame() {
+  clearHUD();
+  killBall();
+  killPaddle();
+  killBricks();
+  clearBackground();
+}
+
+function spawnGame() {
+  clearScreenText();
+  spawnBricks();
+  spawnPaddle();
+  spawnBall();
+  drawServeMessage();
+  drawHUD();
+  drawBackground();
+}
+
 function keyDownHandler(e) {
   switch (e.key) {
     case "Escape":
       switch (gameState) {
         case 3: // Restart
-          clearHUD();
-          killBall();
-          killPaddle();
-          killBricks();
+          killGame();
           gameState = -2;
-          drawTitleScreen();
+          drawTitleScreen();  
           break;
-        case 0:
+        case 0: // Pause
           drawPauseScreen();
           gameState = 3
       }
@@ -364,27 +401,17 @@ function keyDownHandler(e) {
       switch (gameState) {
         case -2: // start new game
         case -1: // Reset from game over
-          clearScreenText();
-          spawnBricks();
-          spawnPaddle();
-          spawnBall();
-          drawServeMessage();
           gameState = 1;
           ui.lives = 3
           ui.score = 0
           ui.time = 0
           ui.level = 1
-          drawHUD();
+          spawnGame();
           break;
         case 2: // Win state, reset the board and go back to serve
-          clearScreenText();
-          spawnBricks();
-          spawnPaddle();
-          spawnBall();
-          drawServeMessage();
           gameState = 1;
           ui.level++
-          drawHUD();
+          spawnGame();
           break;
         case 1: // Serve the ball
           clearScreenText();

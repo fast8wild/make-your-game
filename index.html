@@ -12,7 +12,7 @@
         }
 
         #gameWindow {
-            background: #eee;
+            background-color: #eee;
             display: flex;
             position: relative;
             margin: 10% auto;
@@ -46,7 +46,7 @@
         }
 
         #mscontainer {
-            display: block;
+            display: none;
             position: absolute;
             font-size: 12px;
             top: 308px;
@@ -106,10 +106,10 @@
             background-color: #0095DD;
         }
         .brick[health="2"] {
-            background-color: #95DD00;
+            background-color: #DD0095;
         }
         .brick[health="3"] {
-            background-color: #DD0095;
+            background-color: #9500DD;
         }
     </style>
 </head>
@@ -119,7 +119,7 @@
         <div id="bigText"></div>
         <div id="subText"></div>
         <div id="hud">
-            <div>Time: <span id="time"></span></div>
+            <div>Time: <span id="time">00:00</span></div>
             <div>Lives: <span id="lives"></span></div>
             <div>Level: <span id="level"></span></div>
             <div>Score: <span id="score"></span></div>
