@@ -105,7 +105,6 @@ function spawnBall() {
   ball.html.style.height = 2 * ball.r + "px"
   ball.html.style.width = 2 * ball.r + "px"
   ball.html.style.display = "block"
-  ball.html.style.willChange = "transform"
   gameWindow.append(ball.html)
 }
 
@@ -133,7 +132,6 @@ function spawnPaddle() {
   paddle.html.style.top = "0px"
   paddle.html.style.height = paddle.h + "px"
   paddle.html.style.width = paddle.w + "px"
-  paddle.html.style.willChange = "transform"
   gameWindow.append(paddle.html)
 }
 
@@ -342,7 +340,7 @@ function drawPauseScreen() {
 }
 
 function drawBackground() {
-  gameWindow.style.backgroundImage = "url('background.svg')";
+  gameWindow.style.backgroundImage = "url('assets/background.svg')";
 }
 
 function clearBackground() {
