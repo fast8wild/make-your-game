@@ -44,6 +44,7 @@ const ball = {
   speed: 2,
   dx: 2,
   dy: -2,
+  rot: 0,
   html: null,
 }
 
@@ -97,6 +98,7 @@ function spawnBall() {
   ball.speed = (3+ui.level/5)
   ball.dx = ball.speed - 1
   ball.dy = -ball.speed + 1
+  ball.rot = 0
   ball.html = document.createElement("span")
   ball.html.id = "ball"
   ball.html.style.left = "0px"
@@ -111,7 +113,7 @@ function spawnBall() {
 function moveBall() {
   //ball.html.style.left = (ball.x - ball.r) + "px"
   //ball.html.style.top = (ball.y - ball.r) + "px"
-  ball.html.style.transform = "translate(" + (ball.x- ball.r) + "px, " + (ball.y- ball.r) + "px)"
+  ball.html.style.transform = "translate(" + (ball.x- ball.r) + "px, " + (ball.y- ball.r) + "px) rotate(" + (ball.rot) + "deg) "
 }
 
 function killBall() {
@@ -256,9 +258,11 @@ function updateBall() {
   if (gameState == 1) { // Stick the ball to the paddle on serve
     ball.x = paddle.x + paddle.w / 2
     ball.y = paddle.y - 10
+    ball.rot = 0
   } else {
     ball.x += ball.dx;
     ball.y += ball.dy;
+    ball.rot += ball.dx
     brickCollission();
     paddleCollission();
     screenCollission();
